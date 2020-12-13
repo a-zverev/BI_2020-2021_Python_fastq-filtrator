@@ -8,11 +8,24 @@ GC_BOUND = []
 
 # is it help request?
 if len(sys.argv) == 1 or sys.argv[1] == '--help':
-    print("this is help")
+    print("This is simple fastq filtrator by GC-content and length.")
+    print("Usage: fastq_filtrator.py [options] FILE")
+    print("mandatory argument:")
+    print("FILE - name of fastq-file")
+    print("optional arguments:")
+    print("--min_length N  - minimal length of read to survive, int value. If not provided, "
+          "all reads will pass length filter")
+    print("--keep_filtered  - keep filtered reads in separate file, flag")
+    print("-- gc_bounds N [N]  - range for filtration. if one value is provided, no upper bound will be set. "
+          "If not provided, all reads will pass GC-content filter")
+    print("--output_base_name NAME  - prefix for output file. If not specified, name of FILE will be used "
+          "as a output name")
     exit()
 
 # parse mandatory arg. Actually os.path is better, but we can`t use it :/
 file = sys.argv[-1]
+if file.startswith("--"):
+    raise ValueError("No file")
 try:
     f = open(file, 'r')
     f.read(16)
@@ -22,10 +35,11 @@ except IOError:
 
 # parse optional args
 list = sys.argv[1: -1]
+print(list)
 
 while list:
-    arg = list.pop(0)
-
+    arg = list.pop(0).strip()
+    print(arg)
     if arg == "--min_length":
         # int more than 0
         if list and not list[0].startswith("--"):
@@ -41,21 +55,22 @@ while list:
         # flag
         KEEP_FILTERED = True
 
-    if arg == "--gc_bounds":
-        # int more 0, upper >= lower
+    elif arg == "--gc_bounds":
+        # ints more 0, upper >= lower
         if list and not list[0].startswith("--"):
             GC_BOUND.append(list.pop(0))
-        elif list and not list[0].startswith("--"):
-            GC_BOUND.append(list.pop(0))
+            if list and not list[0].startswith("--"):
+                GC_BOUND.append(list.pop(0))
+        else:
+            raise ValueError(f"No argument with --gc_bounds")
+
         for value in GC_BOUND:
             if not value.isdigit() or int(value) < 0:
                 raise ValueError(f"Wrong value {value}")
         if len(GC_BOUND) == 2 and GC_BOUND[0] > GC_BOUND[1]:
             raise ValueError(f"Wrong --gc_bounds values: min is greater, than max")
-        else:
-            raise ValueError(f"No argument with --gc_bounds")
 
-    if arg == "--output_base_name":
+    elif arg == "--output_base_name":
         # name
         if list and not list[0].startswith("--"):
             OUTPUT_BASENAME = list.pop(0)
@@ -66,4 +81,8 @@ while list:
         raise ValueError(f"Unknown argument: {arg}")
 
 
-print(KEEP_FILTERED, MIN_LEN, OUTPUT_BASENAME, GC_BOUND)
+print(f'keep filtered is {KEEP_FILTERED}, '
+      f'min len is {MIN_LEN}, '
+      f'basename is {OUTPUT_BASENAME}, '
+      f'gc range is  {GC_BOUND}')
+
