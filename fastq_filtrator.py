@@ -1,6 +1,5 @@
 import sys
 
-
 KEEP_FILTERED = False
 MIN_LEN = 1
 OUTPUT_BASENAME = ''
@@ -16,7 +15,7 @@ if len(sys.argv) == 1 or sys.argv[1] == '--help':
     print("--min_length N  - minimal length of read to survive, int value. If not provided, "
           "all reads will pass length filter")
     print("--keep_filtered  - keep filtered reads in separate file, flag")
-    print("-- gc_bounds N [N]  - range for filtration. if one value is provided, no upper bound will be set. "
+    print("--gc_bounds N [N]  - range for filtration. if one value is provided, no upper bound will be set. "
           "If not provided, all reads will pass GC-content filter")
     print("--output_base_name NAME  - prefix for output file. If not specified, name of FILE will be used "
           "as a output name")
@@ -80,9 +79,109 @@ while list:
     else:
         raise ValueError(f"Unknown argument: {arg}")
 
-
 print(f'keep filtered is {KEEP_FILTERED}, '
       f'min len is {MIN_LEN}, '
       f'basename is {OUTPUT_BASENAME}, '
       f'gc range is  {GC_BOUND}')
 
+
+# from https://www.biostars.org/p/317524/
+def process(lines_in=None):
+    ks = ['name', 'sequence', 'optional', 'quality']
+    return {k: v for k, v in zip(ks, lines_in)}
+
+
+n = 4
+res = []
+with open(file, 'r') as fh:
+    lines = []
+    for line in fh:
+        lines.append(line.rstrip())
+        if len(lines) == n:
+            record = process(lines)
+            res.append(record)
+            lines = []
+
+keep = []
+
+if MIN_LEN:
+    new_res = []
+    for seq in res:
+        if len(seq['sequence']) < int(MIN_LEN):
+            if KEEP_FILTERED:
+                keep.append(seq)
+        else:
+            new_res.append(seq)
+    res = new_res
+
+if GC_BOUND:
+    new_res = []
+    for seq in res:
+        seq_len = len(seq['sequence'])
+        gc_sum = seq['sequence'].count('C') + seq['sequence'].count('G')
+        gc_per = (gc_sum / seq_len) * 100
+
+        if len(GC_BOUND) == 1:
+            if gc_per > float(GC_BOUND[0]):
+                new_res.append(seq)
+            else:
+                if KEEP_FILTERED:
+                    keep.append(seq)
+
+        else:
+            if float(GC_BOUND[0]) < gc_per < float(GC_BOUND[1]):
+                new_res.append(seq)
+            else:
+                if KEEP_FILTERED:
+                    keep.append(seq)
+
+if KEEP_FILTERED:
+    if OUTPUT_BASENAME:
+        filename_passed = "%s_passed.fastq" % OUTPUT_BASENAME
+        filename_keep = "%s_passed.fastq" % OUTPUT_BASENAME
+        with open(filename_passed, 'a', encoding='utf-8') as f:
+            for i in res:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
+        with open(filename_keep, 'a', encoding='utf-8') as f:
+            for i in keep:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
+    else:
+        filename_passed = "%s_passed.fastq" % file
+        filename_keep = "%s_passed.fastq" % file
+        with open(filename_passed, 'a', encoding='utf-8') as f:
+            for i in res:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
+        with open(filename_keep, 'a', encoding='utf-8') as f:
+            for i in keep:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
+else:
+    if OUTPUT_BASENAME:
+        filename_passed = "%s.fastq" % OUTPUT_BASENAME
+        filename_keep = "%s.fastq" % OUTPUT_BASENAME
+        with open(filename_passed, 'a', encoding='utf-8') as f:
+            for i in res:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
+    else:
+        filename_passed = "%s.fastq" % file
+        filename_keep = "%s.fastq" % file
+        with open(filename_passed, 'a', encoding='utf-8') as f:
+            for i in res:
+                f.write(i['name'] + '\n')
+                f.write(i['sequence'] + '\n')
+                f.write(i['optional'] + '\n')
+                f.write(i['quality'] + '\n')
