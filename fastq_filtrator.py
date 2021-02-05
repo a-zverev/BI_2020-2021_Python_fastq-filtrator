@@ -134,7 +134,7 @@ if GC_BOUND:
         else:
             if float(GC_BOUND[0]) < gc_per < float(GC_BOUND[1]):
                 new_res.append(seq)
-                print("gc pass ", seq)
+#                 print("gc pass ", seq)
             else:
                 if KEEP_FILTERED:
                     # print("gc keep ", seq, ' ', float(GC_BOUND[0]), ' < ', gc_per, ' < ', float(GC_BOUND[1]))
